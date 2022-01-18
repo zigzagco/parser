@@ -53,7 +53,7 @@ const start= new Date().getTime();
                 document.querySelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img').src
             )
             const transt=translit(pageTitle)
-            const file = fs.createWriteStream('/home/web/web-application/client/public/static/img'+transt+'.jpg')
+            const file = fs.createWriteStream('/home/web/web-application/client/public/static/img/'+transt+'.jpg')
             const request = https.get(pageImg+'',responce =>{
                 responce.pipe(file)
             })
@@ -63,7 +63,7 @@ const start= new Date().getTime();
             upsertUser({
                 title: pageTitle,
                 text: rawTextStr,
-                imgUri: 'static/img/'+transt+'.jpg'
+                imgUri: '/static/img/'+transt+'.jpg'
             });
 
     }catch (error) {
@@ -90,7 +90,7 @@ const start= new Date().getTime();
                     document.querySelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img').src
                 )
                 const transt=translit(pageTitle)
-                const file = fs.createWriteStream('/home/web/web-application/client/public/static/img'+transt+'.jpg')
+                const file = fs.createWriteStream('/home/web/web-application/client/public/static/img/'+transt+'.jpg')
                 const request = https.get(pageImg+'',responce =>{
                     responce.pipe(file)
                 })
@@ -100,7 +100,7 @@ const start= new Date().getTime();
                 upsertUser({
                     title: pageTitle,
                     text: rawTextStr,
-                    imgUri: 'static/img/'+transt+'.jpg'
+                    imgUri: '/static/img/'+transt+'.jpg'
                 });
 
             } catch (error) {
