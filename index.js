@@ -63,7 +63,7 @@ const start= new Date().getTime();
             upsertUser({
                 title: pageTitle,
                 text: rawTextStr,
-                imgUri: 'static/img'+transt+'.jpg'
+                imgUri: 'static/img/'+transt+'.jpg'
             });
 
     }catch (error) {
@@ -100,7 +100,7 @@ const start= new Date().getTime();
                 upsertUser({
                     title: pageTitle,
                     text: rawTextStr,
-                    imgUri: 'static/img'+transt+'.jpg'
+                    imgUri: 'static/img/'+transt+'.jpg'
                 });
 
             } catch (error) {
