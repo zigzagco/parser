@@ -14,7 +14,6 @@ const start= new Date().getTime();
     const browser = await puppeteer.launch({
         headless: true,
         //slowMo: 250,
-        args: ["--no-sandbox"]
     });
     const page = await browser.newPage();
     await page.emulate(iPhone);
@@ -64,7 +63,7 @@ const start= new Date().getTime();
             upsertUser({
                 title: pageTitle,
                 text: rawTextStr,
-                imgUri: '/home/web/web-application/client/public/static/img'+transt+'.jpg'
+                imgUri: 'static/img'+transt+'.jpg'
             });
 
     }catch (error) {
@@ -101,7 +100,7 @@ const start= new Date().getTime();
                 upsertUser({
                     title: pageTitle,
                     text: rawTextStr,
-                    imgUri: '/home/web/web-application/client/public/static/img'+transt+'.jpg'
+                    imgUri: 'static/img'+transt+'.jpg'
                 });
 
             } catch (error) {
