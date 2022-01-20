@@ -95,7 +95,7 @@ const start= new Date().getTime();
                 upsertPost({
                     title: pageTitle,
                     text: rawTextStr,
-                    imgUri: '/static/img/'+transt+'.jpg'
+                    imgUri: '/static/img/'+r+'.jpg'
                 });
 
             } catch (error) {
