@@ -52,7 +52,7 @@ const start= new Date().getTime();
                 document.querySelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img').src
             )
             let r = Math.random().toString(4).substring(7)
-            downloadImage(pageImg, '/home/web/web-application/client/public/static/img/'+r+'.webp')
+            downloadImage(pageImg, '/home/web/web-application/client/public/static/img/'+r+'.jpg')
                 .then(console.log)
                 .catch(console.error);
             console.log("file create")
@@ -60,7 +60,7 @@ const start= new Date().getTime();
             upsertPost({
                 title: pageTitle,
                 text: rawTextStr,
-                imgUri: '/static/img/'+r+'.webp'
+                imgUri: '/static/img/'+r+'.jpg'
             });
 
     }catch (error) {
@@ -87,7 +87,7 @@ const start= new Date().getTime();
                     document.querySelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img').src
                 )
                 let r = Math.random().toString(4).substring(7)
-                downloadImage(pageImg, '/home/web/web-application/client/public/static/img/'+r+'.webp')
+                downloadImage(pageImg, '/home/web/web-application/client/public/static/img/'+r+'.jpg')
                     .then(console.log)
                     .catch(console.error);
                 console.log("file create")
@@ -124,6 +124,7 @@ const start= new Date().getTime();
     }
     function upsertPost(postObj) {
         const DB_URL = 'mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
+        //const DB_URL = 'mongodb://192.168.5.125:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
         if (mongoose.connection.readyState === 0) {
             mongoose.connect(DB_URL);
         }
