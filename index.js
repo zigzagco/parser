@@ -1,10 +1,9 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs');
-const path = require('path');
+const Axios = require('axios')
 const sharp = require('sharp');
 const mongoose = require('mongoose');
 const User = require('./models/Post');
-const https = require("https");
 const iPhone = puppeteer.devices['iPhone 6'];
 
 
@@ -52,18 +51,16 @@ const start= new Date().getTime();
             const pageImg = await page.evaluate(() =>
                 document.querySelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img').src
             )
-            const transt=translit(pageTitle)
-            const file = fs.createWriteStream('/home/web/web-application/client/public/static/img/'+transt+'.jpg')
-            const request = https.get(pageImg+'',responce =>{
-                responce.pipe(file)
-            })
-            //await sharp(request).jpeg().toFile('/Users/glebvodolazkin/Desktop/web-application/client/public/static/img/'+transt+'.jpg')
+            let r = Math.random().toString(4).substring(7)
+            downloadImage(pageImg, '/home/web/web-application/client/public/static/img/'+r+'.webp')
+                .then(console.log)
+                .catch(console.error);
             console.log("file create")
 
-            upsertUser({
+            upsertPost({
                 title: pageTitle,
                 text: rawTextStr,
-                imgUri: '/static/img/'+transt+'.jpg'
+                imgUri: '/static/img/'+r+'.webp'
             });
 
     }catch (error) {
@@ -89,15 +86,13 @@ const start= new Date().getTime();
                 const pageImg = await page.evaluate(() =>
                     document.querySelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img').src
                 )
-                const transt=translit(pageTitle)
-                const file = fs.createWriteStream('/home/web/web-application/client/public/static/img/'+transt+'.jpg')
-                const request = https.get(pageImg+'',responce =>{
-                    responce.pipe(file)
-                })
-                //await sharp(request).jpeg().toFile('/Users/glebvodolazkin/Desktop/web-application/client/public/static/img/'+transt+'.jpg')
+                let r = Math.random().toString(4).substring(7)
+                downloadImage(pageImg, '/home/web/web-application/client/public/static/img/'+r+'.webp')
+                    .then(console.log)
+                    .catch(console.error);
                 console.log("file create")
 
-                upsertUser({
+                upsertPost({
                     title: pageTitle,
                     text: rawTextStr,
                     imgUri: '/static/img/'+transt+'.jpg'
@@ -106,35 +101,35 @@ const start= new Date().getTime();
             } catch (error) {
                 console.error(error);
             }
-
-
         }
         await page.close();
-
     }
     const end = new Date().getTime();
-    function translit(str)
-    {
-        var ru=("А-а-Б-б-В-в-Ґ-ґ-Г-г-Д-д-Е-е-Ё-ё-Є-є-Ж-ж-З-з-И-и-І-і-Ї-ї-Й-й-К-к-Л-л-М-м-Н-н-О-о-П-п-Р-р-С-с-Т-т-У-у-Ф-ф-Х-х-Ц-ц-Ч-ч-Ш-ш-Щ-щ-Ъ-ъ-Ы-ы-Ь-ь-Э-э-Ю-ю-Я-я").split("-")
-        var en=("A-a-B-b-V-v-G-g-G-g-D-d-E-e-E-e-E-e-ZH-zh-Z-z-I-i-I-i-I-i-J-j-K-k-L-l-M-m-N-n-O-o-P-p-R-r-S-s-T-t-U-u-F-f-H-h-TS-ts-CH-ch-SH-sh-SCH-sch-'-'-Y-y-'-'-E-e-YU-yu-YA-ya").split("-")
-        var res = '';
-        for(var i=0, l=str.length; i<l; i++)
-        {
-            var s = str.charAt(i), n = ru.indexOf(s);
-            if(n >= 0) { res += en[n]; }
-            else { res += s; }
-        }
-        return res;
-    }
-    function upsertUser(postObj) {
 
+
+
+ //--------------------------------------SCRIPT END----------------------------------------
+
+    async function downloadImage(url, filepath) {
+        const response = await Axios({
+            url,
+            method: 'GET',
+            responseType: 'stream'
+        });
+        return new Promise((resolve, reject) => {
+            response.data.pipe(fs.createWriteStream(filepath))
+                .on('error', reject)
+                .once('close', () => resolve(filepath));
+        });
+    }
+    function upsertPost(postObj) {
         const DB_URL = 'mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
         if (mongoose.connection.readyState === 0) {
             mongoose.connect(DB_URL);
         }
 
         // if this email exists, update the entry, don't insert
-        // Если почтовый ящик существует, обновить экземпляр без добавления
+        // Если почтовый title, обновить экземпляр без добавления
         const conditions = {
             title: postObj.title
         };
@@ -151,7 +146,7 @@ const start= new Date().getTime();
         });
     }
     console.log('Time to execute:' + (end - start)+'ms');
-    //await browser.close();
+    await browser.close();
 
 
 })();
