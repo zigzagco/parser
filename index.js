@@ -53,6 +53,7 @@ const start= new Date().getTime();
             )
             let r = Math.random().toString(4).substring(7)
             downloadImage(pageImg, '/home/web/web-application/client/public/static/img/'+r+'.jpg')
+            //downloadImage(pageImg, '/Users/glebvodolazkin/Desktop/web-application/client/public/static/img/'+r+'.jpg')
                 .then(console.log)
                 .catch(console.error);
             console.log("file create")
@@ -88,6 +89,7 @@ const start= new Date().getTime();
                 )
                 let r = Math.random().toString(4).substring(7)
                 downloadImage(pageImg, '/home/web/web-application/client/public/static/img/'+r+'.jpg')
+                //downloadImage(pageImg, '/Users/glebvodolazkin/Desktop/web-application/client/public/static/img/'+r+'.jpg')
                     .then(console.log)
                     .catch(console.error);
                 console.log("file create")
