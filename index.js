@@ -28,7 +28,7 @@ const start= new Date().getTime();
         console.log(url)
         await botRun(url)
     }
-
+//-----------------------function start---------------------------------------
     async function botRun(url) {
         const page = await browser.newPage();
         try {
@@ -46,7 +46,10 @@ const start= new Date().getTime();
                 )
             let rawTextStr = pageText.join()
             console.log(rawTextStr)
-
+            const pageTag = await page.evaluate(() =>
+                Array.from(document.querySelectorAll('head > meta[property="article:tag"]')).map(res =>res.content)
+            )
+            //let rawTagStr = pageTag.join(',')
             await page.waitForSelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img');
             const pageImg = await page.evaluate(() =>
                 document.querySelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img').src
@@ -61,8 +64,11 @@ const start= new Date().getTime();
             upsertPost({
                 title: pageTitle,
                 text: rawTextStr,
-                imgUri: '/static/img/'+r+'.jpg'
+                imgUri: '/static/img/'+r+'.jpg',
+                keywords: pageTag
             });
+
+
 
     }catch (error) {
             try {
@@ -77,12 +83,13 @@ const start= new Date().getTime();
                 await page.waitForSelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__body.js-mediator-article.mia-analytics');
                 const pageText = await page.evaluate(() =>
                     Array.from(document.querySelectorAll('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__body.js-mediator-article.mia-analytics > div[data-type="text"]')).map(res =>res.innerText)
-
                 )
                 let rawTextStr = pageText.join()
                 console.log(rawTextStr)
-
-
+                const pageTag = await page.evaluate(() =>
+                    Array.from(document.querySelectorAll('head > meta[property="article:tag"]')).map(res =>res.content)
+                )
+                //let rawTagStr = pageTag.join(',')
                 await page.waitForSelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img');
                 const pageImg = await page.evaluate(() =>
                     document.querySelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img').src
@@ -97,7 +104,8 @@ const start= new Date().getTime();
                 upsertPost({
                     title: pageTitle,
                     text: rawTextStr,
-                    imgUri: '/static/img/'+r+'.jpg'
+                    imgUri: '/static/img/'+r+'.jpg',
+                    keywords: pageTag
                 });
 
             } catch (error) {
@@ -148,7 +156,8 @@ const start= new Date().getTime();
             }
         });
     }
-    console.log('Time to execute:' + (end - start)+'ms');
+
+    console.log('Time to execute:' + (end - start) +'ms');
     await browser.close();
 
 

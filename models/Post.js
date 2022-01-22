@@ -11,10 +11,10 @@ const schema = new Schema({
     },
     imgUri:{type:String},
     imgAlt:{type:String},
+    keywords:{type: Array},
     meta: {
         title: {type: String},
         description:{type: String},
-        keywords:{type: String},
         createdAt: {
             type: Date,
             default: Date.now()
