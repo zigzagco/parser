@@ -1,11 +1,12 @@
+
+const cyrillicToTranslit = require('cyrillic-to-translit-js')
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const Axios = require('axios')
 const sharp = require('sharp');
 const mongoose = require('mongoose');
-const User = require('./models/Post');
+const Post = require('./models/Post');
 const iPhone = puppeteer.devices['iPhone 6'];
-
 
 
 const start= new Date().getTime();
@@ -17,102 +18,62 @@ const start= new Date().getTime();
     const page = await browser.newPage();
     await page.emulate(iPhone);
     await page.goto('https://ria.ru/politics/',{ waitUntil: 'networkidle2' });
-    //const Title = await page.evaluate(() => Array.from(document.querySelectorAll('#content > div > div.layout-rubric__main > div > div.list.list-tags > div > div.list-item__content > a')).map(res =>
-    //res.innerText.trim()))
     const Href = await page.evaluate(() => Array.from(document.querySelectorAll('#content > div > div.layout-rubric__main > div > div.list.list-tags > div > div.list-item__content > a.list-item__title.color-font-hover-only')).map(res =>
         res.href.trim()))
-    console.log(Href)
-    console.log(Href.length)
-
     for(let url of Href) {
-        console.log(url)
-        await botRun(url)
+        const s1 = 'https://ria.ru/';
+        const s2 = url.slice(0, 15);
+        if (s1.toLowerCase() === s2.toLowerCase()){
+            await botRun(url)
+        }
     }
 //-----------------------function start---------------------------------------
     async function botRun(url) {
-        const page = await browser.newPage();
         try {
-        await page.goto(url + '', {waitUntil: 'networkidle2'});
-            await page.waitForSelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div > div.article__header > div.article__title');
+            console.log(url)
+            const page = await browser.newPage();
+            await page.goto(url + '', {waitUntil: 'domcontentloaded'});
+            await page.waitForSelector('[class="article__title"]');
             const pageTitle = await page.evaluate(() =>
-                document.querySelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div > div.article__header > div.article__title').innerText
+                document.querySelector('[class="article__title"]').innerText
             )
-            console.log(pageTitle)
-
-           await page.waitForSelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__body.js-mediator-article.mia-analytics');
-                const pageText = await page.evaluate(() =>
-                    Array.from(document.querySelectorAll('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__body.js-mediator-article.mia-analytics > div[data-type="text"]')).map(res =>res.innerText)
-
-                )
+            //console.log(pageTitle)
+            await page.waitForSelector('[class="article__text"]');
+            const pageText = await page.evaluate(() =>
+                Array.from(document.querySelectorAll('[class="article__text"]')).map(res => res.innerText)
+            )
             let rawTextStr = pageText.join()
-            console.log(rawTextStr)
+            //console.log(rawTextStr)
+            await page.waitForSelector('[class="article__tags-item"]');
             const pageTag = await page.evaluate(() =>
-                Array.from(document.querySelectorAll('head > meta[property="article:tag"]')).map(res =>res.content)
+                Array.from(document.querySelectorAll('[class="article__tags-item"]')).map(res => res.innerText)
             )
-            //let rawTagStr = pageTag.join(',')
-            await page.waitForSelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img');
+            let rawTagStr = pageTag.join(',')
+            //console.log(rawTagStr)
             const pageImg = await page.evaluate(() =>
-                document.querySelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img').src
+                document.querySelector('#endless > div > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img').src
             )
-            let r = Math.random().toString(4).substring(7)
-            downloadImage(pageImg, '/home/web/web-application/client/public/static/img/'+r+'.jpg')
-            //downloadImage(pageImg, '/Users/glebvodolazkin/Desktop/web-application/client/public/static/img/'+r+'.jpg')
+            //console.log(pageImg)
+            const today = new Date();
+            const d = today.getUTCDate();
+            const m = today.getUTCMonth();
+            const y = today.getFullYear();
+            let r = d+'_'+m+'_'+y+'_'+cyrillicToTranslit().transform(pageTitle,'_').toLowerCase();
+            downloadImage(pageImg, '/Users/gleb/Desktop/image/'+r+'.jpg')
                 .then(console.log)
                 .catch(console.error);
-            console.log("file create")
+            //console.log("file create")
 
             upsertPost({
                 title: pageTitle,
                 text: rawTextStr,
                 imgUri: '/static/img/'+r+'.jpg',
-                keywords: pageTag
+                keywords: rawTagStr
             });
 
-
-
-    }catch (error) {
-            try {
-
-                await page.goto(url + '', {waitUntil: 'networkidle2'})
-                await page.waitForSelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div > div.article__header > h1');
-                const pageTitle = await page.evaluate(() =>
-                    document.querySelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div > div.article__header > h1').innerText)
-                console.log(pageTitle)
-
-
-                await page.waitForSelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__body.js-mediator-article.mia-analytics');
-                const pageText = await page.evaluate(() =>
-                    Array.from(document.querySelectorAll('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__body.js-mediator-article.mia-analytics > div[data-type="text"]')).map(res =>res.innerText)
-                )
-                let rawTextStr = pageText.join()
-                console.log(rawTextStr)
-                const pageTag = await page.evaluate(() =>
-                    Array.from(document.querySelectorAll('head > meta[property="article:tag"]')).map(res =>res.content)
-                )
-                //let rawTagStr = pageTag.join(',')
-                await page.waitForSelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img');
-                const pageImg = await page.evaluate(() =>
-                    document.querySelector('#endless > div.endless__item.m-active > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img').src
-                )
-                let r = Math.random().toString(4).substring(7)
-                downloadImage(pageImg, '/home/web/web-application/client/public/static/img/'+r+'.jpg')
-                //downloadImage(pageImg, '/Users/glebvodolazkin/Desktop/web-application/client/public/static/img/'+r+'.jpg')
-                    .then(console.log)
-                    .catch(console.error);
-                console.log("file create")
-
-                upsertPost({
-                    title: pageTitle,
-                    text: rawTextStr,
-                    imgUri: '/static/img/'+r+'.jpg',
-                    keywords: pageTag
-                });
-
-            } catch (error) {
-                console.error(error);
-            }
+        }catch (error) {
+            console.log(error)
         }
-        await page.close();
     }
     const end = new Date().getTime();
 
@@ -139,8 +100,8 @@ const start= new Date().getTime();
             mongoose.connect(DB_URL);
         }
 
-        // if this email exists, update the entry, don't insert
-        // Если почтовый title, обновить экземпляр без добавления
+        // if this title exists, update the entry, don't insert
+        // Если  title, обновить экземпляр без добавления
         const conditions = {
             title: postObj.title
         };
@@ -150,15 +111,16 @@ const start= new Date().getTime();
             setDefaultsOnInsert: true
         };
 
-        User.findOneAndUpdate(conditions, postObj, options, (err, result) => {
+        Post.findOneAndUpdate(conditions, postObj, options, (err, result) => {
             if (err) {
                 throw err;
             }
         });
     }
 
-    console.log('Time to execute:' + (end - start) +'ms');
+    console.log('Time to execute:' + (end - start)/1000 +'sec');
     await browser.close();
+
 
 
 })();
