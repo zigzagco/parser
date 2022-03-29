@@ -80,7 +80,7 @@ const start= new Date().getTime();
             const y = today.getFullYear();
             const name = cyrillicToTranslit().transform(pageTitle,'_').toLowerCase()
             let r = d+'_'+m+'_'+y+'_'+name;
-            downloadImage(pageImg, '/home/web/web-application/client/public/static/img/'+r+'.jpg'/*'/Users/gleb/Desktop/web-application/client/public/static/img/'+r+'.jpg'*/)
+            downloadImage(pageImg, '/home/web/web-application/client/public/static/img/'+r+'.jpg'     /*'/Users/gleb/Desktop/web-application/client/public/static/img/'+r+'.jpg'*/)
                 .then(console.log)
                 .catch(console.error);
             //console.log("file create")
@@ -109,6 +109,7 @@ const start= new Date().getTime();
                     en_keywords: enTag[l],
                 })
             }
+            await page.close()
         }catch (error) {
             console.log(error)
         }
