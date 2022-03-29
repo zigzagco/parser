@@ -15,7 +15,8 @@ const start= new Date().getTime();
     const  urlArray = ['https://ria.ru/politics/','https://ria.ru/world/','https://ria.ru/economy/','https://ria.ru/society/','https://ria.ru/incidents/','https://ria.ru/defense_safety/']
     for (let index = 0; index < urlArray.length; ++index) {
         const browser = await puppeteer.launch({
-            headless: false,
+            //executablePath: '/usr/bin/chromium-browser'
+            headless: true,
             //slowMo: 250,
         });
         const page = await browser.newPage();
