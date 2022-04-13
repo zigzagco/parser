@@ -17,6 +17,16 @@ const start= new Date().getTime();
         const browser = await puppeteer.launch({
             //executablePath: '/usr/bin/chromium-browser'
             headless: true,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process',
+                '--disable-gpu'
+            ],
             //slowMo: 250,
         });
         const page = await browser.newPage();
@@ -133,8 +143,8 @@ const start= new Date().getTime();
         });
     }
     function upsertPost(postObj) {
-        //const DB_URL = 'mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
-        const DB_URL = 'mongodb://192.168.5.125:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
+        const DB_URL = 'mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
+        //const DB_URL = 'mongodb://192.168.5.125:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
         if (mongoose.connection.readyState === 0) {
             mongoose.connect(DB_URL);
         }
