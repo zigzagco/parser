@@ -75,9 +75,7 @@ const start= new Date().getTime();
             )
             const time = pageTime_date.substr(0,5)
             const date = pageTime_date.substr(6,15)
-            const _y = date.substr(6,9)
-            const _m = date.substr(3,2)
-            const _d = date.substr(0,2)
+
             //console.log(date + " --- " + _y+" "+_m+" "+_d)
 
             const pageImg = await page.evaluate(() =>
@@ -108,9 +106,6 @@ const start= new Date().getTime();
                 en_keywords: enTag,
                 time: time,
                 date: date,
-                d:_d,
-                m:_m,
-                y:_y
             });
 
             for (let l=0;l<pageTag.length;l++){
@@ -143,8 +138,8 @@ const start= new Date().getTime();
         });
     }
     function upsertPost(postObj) {
-        const DB_URL = 'mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
-        //const DB_URL = 'mongodb://192.168.5.125:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
+        //const DB_URL = 'mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
+        const DB_URL = 'mongodb://192.168.5.125:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
         if (mongoose.connection.readyState === 0) {
             mongoose.connect(DB_URL);
         }
@@ -167,8 +162,8 @@ const start= new Date().getTime();
         });
     }
     function upsertDir(postObj) {
-        const DB_URL = 'mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
-        //const DB_URL = 'mongodb://192.168.5.125:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
+        //const DB_URL = 'mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
+        const DB_URL = 'mongodb://192.168.5.125:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
         if (mongoose.connection.readyState === 0) {
             mongoose.connect(DB_URL);
         }
