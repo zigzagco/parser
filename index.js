@@ -2,16 +2,21 @@
 const cyrillicToTranslit = require('cyrillic-to-translit-js')
 const puppeteer = require('puppeteer');
 const fs = require('fs');
+const sharp = require('sharp');
 const Axios = require('axios')
 const mongoose = require('mongoose');
 const Post = require('./models/Post');
 const Dir = require('./models/Dir')
+const axios = require("axios");
+const Sharp = require("sharp");
+const FormData = require("form-data");
 const iPhone = puppeteer.devices['iPhone 6'];
 
 
 const start= new Date().getTime();
 (async () => {
-
+    let count = 0;
+    console.log("script started")
     const  urlArray = ['https://ria.ru/politics/','https://ria.ru/world/','https://ria.ru/economy/','https://ria.ru/society/','https://ria.ru/incidents/','https://ria.ru/defense_safety/']
     for (let index = 0; index < urlArray.length; ++index) {
         const browser = await puppeteer.launch({
@@ -27,7 +32,7 @@ const start= new Date().getTime();
                 '--single-process',
                 '--disable-gpu'
             ],
-            //slowMo: 250,
+            //slowMo: 500,
         });
         const page = await browser.newPage();
         await page.emulate(iPhone);
@@ -35,21 +40,26 @@ const start= new Date().getTime();
         const Href = await page.evaluate(() => Array.from(document.querySelectorAll('#content > div > div.layout-rubric__main > div > div.list.list-tags > div > div.list-item__content > a.list-item__title.color-font-hover-only')).map(res =>
             res.href.trim()))
         await page.close()
+
         for(let url of Href) {
             const s1 = 'https://ria.ru/';
             const s2 = url.slice(0, 15);
             if (s1.toLowerCase() === s2.toLowerCase()){
+                console.log("iteration num: "+index)
                 await botRun(url,browser)
             }
         }
         await browser.close();
-        console.log("urlarr ---  "+urlArray[index])
+        //console.log("urlarr ---  "+urlArray[index])
     }
+    const end = new Date().getTime();
 
 //-----------------------function start---------------------------------------
     async function botRun(url,browser) {
+        incrementCount();
+        console.log(count)
         try {
-            console.log(url)
+            console.log("link: "+url)
             const page = await browser.newPage();
             await page.setDefaultNavigationTimeout(0);
             await page.goto(url + '', {waitUntil: 'domcontentloaded'});
@@ -77,7 +87,7 @@ const start= new Date().getTime();
             const date = pageTime_date.substr(6,15)
 
             //console.log(date + " --- " + _y+" "+_m+" "+_d)
-
+            await page.waitForSelector('#endless > div > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img');
             const pageImg = await page.evaluate(() =>
                 document.querySelector('#endless > div > div > div > div.layout-article__over > div.layout-article__main > div > div:nth-child(1) > div.article__header > div.article__announce > div > div.media__size > div > img').src
             )
@@ -87,27 +97,30 @@ const start= new Date().getTime();
             const m = today.getUTCMonth();
             const y = today.getFullYear();
             const name = cyrillicToTranslit().transform(pageTitle,'_').toLowerCase()
-            let r = d+'_'+m+'_'+y+'_'+name;
-            downloadImage(pageImg, '/home/web/web-application/client/public/static/img/'+r+'.jpg'     /*'/Users/gleb/Desktop/web-application/client/public/static/img/'+r+'.jpg'*/)
-                .then(console.log)
-                .catch(console.error);
-            //console.log("file create")
-            const enTag = pageTag.map(el=>cyrillicToTranslit().transform(el,'_').toLowerCase()
-            )
-            console.log(enTag)
+            let r = d+'_'+m+'_'+y+'_'+name.substr(0,15);
+            const enTag = pageTag.map(el=>cyrillicToTranslit().transform(el,'_').toLowerCase())
+            //console.log(enTag)
             const pageId = r
-            console.log(pageId)
-            upsertPost({
-                id: pageId,
-                title: pageTitle,
-                text: pageText,
-                imgUri: '/static/img/'+r+'.jpg',
-                keywords: pageTag,
-                en_keywords: enTag,
-                time: time,
-                date: date,
-            });
+            //console.log(pageId)
 
+            
+            /*downloadImage(pageImg, /!*'/home/web/web-application/client/public/static/img/'+r+'.jpg'*!/     /!*'/Users/gleb/Desktop/web-application/client/public/static/img/'+r+'.jpg'*!/ '/Users/gleb/Desktop/img/'+r+'.webp')
+                .then(console.log)
+                .catch(console.error);*/
+            console.log("start send img")
+
+            const imguruImage  = await downloadImagesharp(pageImg, '/Users/gleb/Desktop/img/' + r + '.jpeg').then("ll"+console.log).catch(console.error)
+            console.log("link img: "+imguruImage)
+            postTodb(
+                pageId,
+                pageTitle,
+                pageText,
+                imguruImage,
+                pageTag,
+                enTag,
+                time,
+                date,
+            )
             for (let l=0;l<pageTag.length;l++){
                 upsertDir({
                     keywords: pageTag[l],
@@ -115,15 +128,51 @@ const start= new Date().getTime();
                 })
             }
             await page.close()
+            if (count>49){
+                await delayedGreeting(3600000);
+                setincrementCount(0)
+            }
         }catch (error) {
             console.log(error)
         }
     }
-    const end = new Date().getTime();
 
 
 
  //--------------------------------------SCRIPT END----------------------------------------
+
+
+    async function downloadImagesharp(url){
+        const imageResponse = await axios({url: url,method: 'GET', responseType: 'stream'});
+        const src = imageResponse.data.pipe(sharp())
+        console.log("get pipe")
+        try {
+            await src.jpeg()
+            await src.toBuffer()
+            console.log("saved to buffer")
+        } catch(e) {
+            console.log(e)
+        }
+        const data = new FormData();
+        data.append('image', src);
+        const config = {
+            method: 'post',
+            url: 'https://api.imgur.com/3/image',
+            headers: {
+                'Authorization': 'Client-ID 8c3ae86e838b9a2',
+                ...data.getHeaders()
+            },
+            data: data
+        };
+        return await axios(config)
+            .then(function (response) {
+                console.log(response.data.data.link)
+                return response.data.data.link
+            })
+            .catch(function (error) {
+                console.log(error);
+            })
+    }
 
     async function downloadImage(url, filepath) {
         const response = await Axios({
@@ -137,9 +186,40 @@ const start= new Date().getTime();
                 .once('close', () => resolve(filepath));
         });
     }
+    function setincrementCount(si){
+        count=si
+    }
+    function incrementCount(){
+        count++;
+    }
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    async function delayedGreeting(ms) {
+        console.log("подожди "+((ms/1000)/60)+" минут");
+        await sleep(ms);
+        console.log("поток разморожен");
+    }
+    function postTodb(pageId,pageTitle,pageText,imguruImage,pageTag,enTag,time,date){
+        if (pageId !=null && pageTitle !=null && pageText !=null && imguruImage !=null && pageTag !=null && enTag !=null && time !=null && date !=null){
+            upsertPost({
+                id: pageId,
+                title: pageTitle,
+                text: pageText,
+                imgUri: imguruImage,
+                keywords: pageTag,
+                en_keywords: enTag,
+                time: time,
+                date: date,
+            });
+            console.log("post to db")
+        }else {
+            console.log("dont post to db")
+        }
+    }
     function upsertPost(postObj) {
-        //const DB_URL = 'mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
-        const DB_URL = 'mongodb://192.168.5.125:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
+        const DB_URL = 'mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
+        //const DB_URL = 'mongodb://192.168.5.125:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
         if (mongoose.connection.readyState === 0) {
             mongoose.connect(DB_URL);
         }
@@ -162,8 +242,8 @@ const start= new Date().getTime();
         });
     }
     function upsertDir(postObj) {
-        //const DB_URL = 'mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
-        const DB_URL = 'mongodb://192.168.5.125:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
+        const DB_URL = 'mongodb://127.0.0.1:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
+        //const DB_URL = 'mongodb://192.168.5.125:27017/?directConnection=true&serverSelectionTimeoutMS=2000';
         if (mongoose.connection.readyState === 0) {
             mongoose.connect(DB_URL);
         }
