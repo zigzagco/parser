@@ -12,6 +12,9 @@ const schema = new Schema({
     text:{type: Array,
         required: true
     },
+    texten:{type: Array,
+        required: true
+    },
     imgUri:{type:String,required: true},
     imgAlt:{type:String},
     keywords:{type: Array},

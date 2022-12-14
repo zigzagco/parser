@@ -1,5 +1,7 @@
 "use strict"
 const cyrillicToTranslit = require('cyrillic-to-translit-js')
+const translate = require('@iamtraction/google-translate');
+const fetch = require('node-fetch');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const sharp = require('sharp');
@@ -17,10 +19,10 @@ const start= new Date().getTime();
 (async () => {
     let count = 0;
     console.log("script started")
-    const  urlArray = ['https://ria.ru/politics/','https://ria.ru/world/','https://ria.ru/economy/','https://ria.ru/society/','https://ria.ru/incidents/','https://ria.ru/defense_safety/']
+    const  urlArray = ['https://ria.ru/politics/','https://ria.ru/world/','https://ria.ru/economy/','https://ria.ru/society/','https://ria.ru/incidents/','https://www.sports.ru/news/','https://lenta.ru/rubrics/science/science/']
     for (let index = 0; index < urlArray.length; ++index) {
         const browser = await puppeteer.launch({
-            //executablePath: '/usr/bin/chromium-browser'
+            executablePath: '/usr/bin/chromium-browser',
             headless: true,
             args: [
                 '--no-sandbox',
@@ -37,19 +39,26 @@ const start= new Date().getTime();
         const page = await browser.newPage();
         await page.emulate(iPhone);
         await page.goto(urlArray[index],{ waitUntil: 'networkidle2' });
-        const Href = await page.evaluate(() => Array.from(document.querySelectorAll('#content > div > div.layout-rubric__main > div > div.list.list-tags > div > div.list-item__content > a.list-item__title.color-font-hover-only')).map(res =>
-            res.href.trim()))
-        await page.close()
+        if (urlArray[index]==='https://www.sports.ru/news/'){
 
-        for(let url of Href) {
-            const s1 = 'https://ria.ru/';
-            const s2 = url.slice(0, 15);
-            if (s1.toLowerCase() === s2.toLowerCase()){
-                console.log("iteration num: "+index)
-                await botRun(url,browser)
+        }else if(urlArray[index]==='https://lenta.ru/rubrics/science/science/'){
+
+        }else {
+            const Href = await page.evaluate(() => Array.from(document.querySelectorAll('#content > div > div.layout-rubric__main > div > div.list.list-tags > div > div.list-item__content > a.list-item__title.color-font-hover-only')).map(res =>
+                res.href.trim()))
+            await page.close()
+
+            for(let url of Href) {
+                const s1 = 'https://ria.ru/';
+                const s2 = url.slice(0, 15);
+                if (s1.toLowerCase() === s2.toLowerCase()){
+                    console.log("iteration num: "+index)
+                    await botRun(url,browser)
+                }
             }
+            await browser.close();
         }
-        await browser.close();
+
         //console.log("urlarr ---  "+urlArray[index])
     }
     const end = new Date().getTime();
@@ -111,10 +120,17 @@ const start= new Date().getTime();
 
             const imguruImage  = await downloadImagesharp(pageImg, '/Users/gleb/Desktop/img/' + r + '.jpeg').then("ll"+console.log).catch(console.error)
             console.log("link img: "+imguruImage)
+            const textEn = pageText.join(' ')
+            const category = await query({"inputs": textEn, "parameters": {"candidate_labels": ['Спорт','Наука', 'Политика','Общество','Экономика']}}).then((response) => {
+                console.log(JSON.stringify(response));
+                console.log(response["labels"][0])
+                return response["labels"][0]
+            });
             postTodb(
                 pageId,
                 pageTitle,
                 pageText,
+                category,
                 imguruImage,
                 pageTag,
                 enTag,
@@ -186,6 +202,27 @@ const start= new Date().getTime();
                 .once('close', () => resolve(filepath));
         });
     }
+    async function translate_en(text){
+        return await translate(text, {to: 'en'}).then(res => {
+            return res.text
+        }).catch(err => {
+            console.error(err);
+        })
+    }
+
+    async function query(data) {
+        const response = await fetch(
+            "https://api-inference.huggingface.co/models/MoritzLaurer/mDeBERTa-v3-base-mnli-xnli",
+            {
+                headers: { Authorization: "Bearer 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" },
+                method: "POST",
+                body: JSON.stringify(data),
+            }
+        );
+        const result = response.json();
+        return result;
+    }
+
     function setincrementCount(si){
         count=si
     }
@@ -200,12 +237,13 @@ const start= new Date().getTime();
         await sleep(ms);
         console.log("поток разморожен");
     }
-    function postTodb(pageId,pageTitle,pageText,imguruImage,pageTag,enTag,time,date){
-        if (pageId !=null && pageTitle !=null && pageText !=null && imguruImage !=null && pageTag !=null && enTag !=null && time !=null && date !=null){
+    function postTodb(pageId,pageTitle,pageText,pageTexten,imguruImage,pageTag,enTag,time,date){
+        if (pageId !=null && pageTitle !=null && pageText !=null && pageTexten !=null && imguruImage !=null && pageTag !=null && enTag !=null && time !=null && date !=null){
             upsertPost({
                 id: pageId,
                 title: pageTitle,
                 text: pageText,
+                texten: pageTexten,
                 imgUri: imguruImage,
                 keywords: pageTag,
                 en_keywords: enTag,
