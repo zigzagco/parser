@@ -19,7 +19,7 @@ const start= new Date().getTime();
 (async () => {
     let count = 0;
     console.log("script started")
-    const  urlArray = ['https://ria.ru/politics/','https://ria.ru/world/','https://ria.ru/economy/','https://ria.ru/society/','https://ria.ru/incidents/','https://www.sports.ru/news/','https://lenta.ru/rubrics/science/science/']
+    const  urlArray = ['https://lenta.ru/rubrics/science/science/','https://ria.ru/politics/','https://ria.ru/world/','https://ria.ru/economy/','https://ria.ru/society/']
     for (let index = 0; index < urlArray.length; ++index) {
         const browser = await puppeteer.launch({
             executablePath: '/usr/bin/chromium-browser',
@@ -37,12 +37,23 @@ const start= new Date().getTime();
             //slowMo: 500,
         });
         const page = await browser.newPage();
-        await page.emulate(iPhone);
+        //await page.emulate(iPhone);
         await page.goto(urlArray[index],{ waitUntil: 'networkidle2' });
-        if (urlArray[index]==='https://www.sports.ru/news/'){
-
-        }else if(urlArray[index]==='https://lenta.ru/rubrics/science/science/'){
-
+        if(urlArray[index]==='https://lenta.ru/rubrics/science/science/'){
+            const Href = await page.evaluate(() => Array.from(document.querySelectorAll(
+                '#body > div.layout.js-layout > div.layout__container > main > div > section > ul > li > a')).map(res =>
+                res.href))
+            console.log(Href)
+            await page.close()
+            for(let url of Href) {
+                const s1 = 'https://lenta.ru/';
+                const s2 = url.slice(0, 17);
+                if (s1.toLowerCase() === s2.toLowerCase()){
+                    console.log("iteration num: "+index)
+                    await botRunLenta(url,browser)
+                }
+            }
+            await browser.close();
         }else {
             const Href = await page.evaluate(() => Array.from(document.querySelectorAll('#content > div > div.layout-rubric__main > div > div.list.list-tags > div > div.list-item__content > a.list-item__title.color-font-hover-only')).map(res =>
                 res.href.trim()))
@@ -121,7 +132,7 @@ const start= new Date().getTime();
             const imguruImage  = await downloadImagesharp(pageImg, '/Users/gleb/Desktop/img/' + r + '.jpeg').then("ll"+console.log).catch(console.error)
             console.log("link img: "+imguruImage)
             const textEn = pageText.join(' ')
-            const category = await query({"inputs": textEn, "parameters": {"candidate_labels": ['Спорт','Наука', 'Политика','Общество','Экономика']}}).then((response) => {
+            const category = await query({"inputs": textEn, "parameters": {"candidate_labels": ['Наука', 'Политика','Общество','Экономика']}}).then((response) => {
                 console.log(JSON.stringify(response));
                 console.log(response["labels"][0])
                 return response["labels"][0]
@@ -152,7 +163,80 @@ const start= new Date().getTime();
             console.log(error)
         }
     }
-
+    async function botRunLenta(url,browser) {
+        incrementCount();
+        console.log(count)
+        try {
+            console.log("link: "+url)
+            const page = await browser.newPage();
+            await page.setDefaultNavigationTimeout(0);
+            await page.goto(url + '', {waitUntil: 'domcontentloaded'});
+            await page.waitForSelector('[class="topic-body__titles"]');
+            const pageTitle = await page.evaluate(() =>
+                document.querySelector('[class="topic-body__titles"]').innerText
+            )
+            console.log(pageTitle)
+            await page.waitForSelector('[class="topic-body__content"]');
+            const pageText = await page.evaluate(() =>
+                Array.from(document.querySelectorAll('[class="topic-body__content"]')).map(res => res.innerText)
+            )
+            let rawTextStr = pageText.join()
+            console.log(rawTextStr)
+            //console.log(pageTag)
+            await page.waitForSelector('img[class="picture__image"]');
+            const pageImg = await page.evaluate(() =>
+                document.querySelector('img[class="picture__image"]').src
+            )
+            console.log(pageImg)
+            const today = new Date();
+            const d = today.getUTCDate();
+            const m = today.getUTCMonth();
+            const y = today.getFullYear();
+            const name = cyrillicToTranslit().transform(pageTitle,'_').toLowerCase()
+            let r = d+'_'+m+'_'+y+'_'+name.substr(0,15);
+            //console.log(enTag)
+            const pageId = r
+            //console.log(pageId)
+            const imguruImage  = await downloadImagesharp(pageImg, '/Users/gleb/Desktop/img/' + r + '.jpeg').then("ll"+console.log).catch(console.error)
+            /*downloadImage(pageImg, /!*'/home/web/web-application/client/public/static/img/'+r+'.jpg'*!/     /!*'/Users/gleb/Desktop/web-application/client/public/static/img/'+r+'.jpg'*!/ '/Users/gleb/Desktop/img/'+r+'.webp')
+                .then(console.log)
+                .catch(console.error);*/
+            console.log("start send img")
+            const textEn = pageText.join(' ')
+            const category = await query({"inputs": textEn, "parameters": {"candidate_labels": ['Наука', 'Политика','Общество','Экономика']}}).then((response) => {
+                console.log(JSON.stringify(response));
+                console.log(response["labels"][0])
+                if (response["labels"][0]==='Наука'){
+                    return response["labels"][0]
+                }else {
+                    return 'Наука'
+                }
+            });
+            const catEn = cyrillicToTranslit().transform(category).toLowerCase()
+            postTodb(
+                pageId,
+                pageTitle,
+                pageText,
+                category,
+                imguruImage,
+                category,
+                catEn,
+                " ",
+                " ",
+            )
+            upsertDir({
+                keywords: category,
+                en_keywords: catEn,
+            })
+            await page.close()
+            if (count>49){
+                await delayedGreeting(3600000);
+                setincrementCount(0)
+            }
+        }catch (error) {
+            console.log(error)
+        }
+    }
 
 
  //--------------------------------------SCRIPT END----------------------------------------
@@ -236,6 +320,33 @@ const start= new Date().getTime();
         console.log("подожди "+((ms/1000)/60)+" минут");
         await sleep(ms);
         console.log("поток разморожен");
+    }
+    function postTodbLenta(pageId,pageTitle,pageText,pageTexten,imguruImage,pageTag,enTag,time,date){
+        if (pageId !=null && pageTitle !=null && pageText !=null && pageTexten !=null){
+            upsertPost({
+                id: pageId,
+                title: pageTitle,
+                text: pageText,
+                texten: pageTexten,
+            });
+        }
+
+        if (pageId !=null && pageTitle !=null && pageText !=null && pageTexten !=null && imguruImage !=null && pageTag !=null && enTag !=null && time !=null && date !=null){
+            upsertPost({
+                id: pageId,
+                title: pageTitle,
+                text: pageText,
+                texten: pageTexten,
+                imgUri: imguruImage,
+                keywords: pageTag,
+                en_keywords: enTag,
+                time: time,
+                date: date,
+            });
+            console.log("post to db")
+        }else {
+            console.log("dont post to db")
+        }
     }
     function postTodb(pageId,pageTitle,pageText,pageTexten,imguruImage,pageTag,enTag,time,date){
         if (pageId !=null && pageTitle !=null && pageText !=null && pageTexten !=null && imguruImage !=null && pageTag !=null && enTag !=null && time !=null && date !=null){
