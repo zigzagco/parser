@@ -19,7 +19,7 @@ const start= new Date().getTime();
 (async () => {
     let count = 0;
     console.log("script started")
-    const  urlArray = ['https://lenta.ru/rubrics/science/science/','https://ria.ru/politics/','https://ria.ru/world/','https://ria.ru/economy/','https://ria.ru/society/']
+    const  urlArray = ['https://ria.ru/politics/','https://ria.ru/economy/','https://ria.ru/society/','https://lenta.ru/rubrics/science/science/']
     for (let index = 0; index < urlArray.length; ++index) {
         const browser = await puppeteer.launch({
             executablePath: '/usr/bin/chromium-browser',
